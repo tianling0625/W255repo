@@ -1,0 +1,38 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: cloud-spanner-emulator
+spec:
+  selector:
+    app: cloud-spanner-emulator
+
+  ports:
+    - name: grpc
+      protocol: TCP
+      port: 9010
+    - name: http
+      protocol: TCP
+      port: 9020
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: cloud-spanner-emulator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloud-spanner-emulator
+  template:
+    metadata:
+      labels:
+        app: cloud-spanner-emulator
+    spec:
+      containers:
+        - name: cloud-spanner-emulator
+          image: gcr.io/cloud-spanner-emulator/emulator
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 9010
+            - containerPort: 9020

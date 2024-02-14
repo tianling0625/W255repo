@@ -1,0 +1,123 @@
+locals {
+  instructors = [
+    "winegarj@berkeley.edu",
+    "mkarch@berkeley.edu",
+    "viswanathan@berkeley.edu",
+    "edbrown@berkeley.edu",
+    "muchovej@berkeley.edu",
+    "luis.villarreal@berkeley.edu",
+    "dantemalagrino@berkeley.edu"
+  ]
+
+  students = [
+    "gdesouza@berkeley.edu",
+    "jocelynvthai@berkeley.edu",
+    "jpetrisko@berkeley.edu",
+    "tspak@berkeley.edu",
+    "leemgjunior@berkeley.edu",
+    "prozan@berkeley.edu",
+    "cwang52@berkeley.edu",
+    "diana.l.nguyen@berkeley.edu",
+    "twang0@berkeley.edu",
+    "tiffanysmalley@berkeley.edu",
+    "wicicibear@berkeley.edu",
+    "caopuzheng@berkeley.edu",
+    "nicoleliu@berkeley.edu",
+    "adityashah2023@berkeley.edu",
+    "ejunprung@berkeley.edu",
+    "lnie@berkeley.edu",
+    "davidflorez@berkeley.edu",
+    "richard.mathews@berkeley.edu",
+    "ssjilani@berkeley.edu",
+    "pascualeley@berkeley.edu",
+    "vincent.goldberg@berkeley.edu",
+    "quazi2023@berkeley.edu",
+    "adam_kreitzman@berkeley.edu",
+    "snarain@berkeley.edu",
+    "sambhav.gupta@berkeley.edu",
+    "jenna_sparks@berkeley.edu",
+    "wshuo87@berkeley.edu",
+    "derek.lee@berkeley.edu",
+    "justinryanwong@berkeley.edu",
+    "dramadas@berkeley.edu",
+    "kkirshen@berkeley.edu",
+    "auschen@berkeley.edu",
+    "bronte.pendergast@berkeley.edu",
+    "abrahaa@berkeley.edu",
+    "silascs@berkeley.edu",
+    "eivalenzuela@berkeley.edu",
+    "ayman.bari@berkeley.edu",
+    "dmcdonald@berkeley.edu",
+    "dizhutong@berkeley.edu",
+    "monica.s.mathur@berkeley.edu",
+    "wesleychang@berkeley.edu",
+    "sn3ae@berkeley.edu",
+    "askazaman@berkeley.edu",
+    "jgao1008@berkeley.edu",
+    "yifan.wang@berkeley.edu",
+    "ff4348@berkeley.edu",
+    "etav@berkeley.edu",
+    "xinfang00@berkeley.edu",
+    "tmahapatra@berkeley.edu",
+    "garosen@berkeley.edu",
+    "spencer_zezulka@berkeley.edu",
+    "jaipaulmann@berkeley.edu",
+    "prasadtyrnan@berkeley.edu",
+    "anooprajnair@berkeley.edu",
+    "jmulieri@berkeley.edu",
+    "matthew.dodd@berkeley.edu",
+    "adam.weinberger@berkeley.edu",
+    "pedroforli@berkeley.edu",
+    "alexandra.e.hurst@berkeley.edu",
+    "adamhyman@berkeley.edu",
+    "shalini_chawla@berkeley.edu",
+    "mamesa.el@berkeley.edu",
+    "jkeller1ca@berkeley.edu",
+    "ajhiggins96@berkeley.edu",
+    "sggonzal@berkeley.edu",
+    "snireddy@berkeley.edu",
+    "dhangur@berkeley.edu",
+    "aruna@berkeley.edu",
+    "geronimowalker@berkeley.edu",
+    "rmarin@berkeley.edu",
+    "michaeltay@berkeley.edu",
+    "xiao_ma@berkeley.edu",
+    "craigandrewmccall@berkeley.edu",
+    "matt.d.kirk@berkeley.edu",
+    "samwon@berkeley.edu",
+    "vishnupaty@berkeley.edu",
+    "omkar_salpekar@berkeley.edu",
+    "deanna.emery@berkeley.edu",
+    "m.kaufmann@berkeley.edu",
+    "rzhou9@berkeley.edu",
+    "bk_pbjonmt@berkeley.edu",
+    "garykong@berkeley.edu",
+    "lukaliu@berkeley.edu",
+    "amcal82437@berkeley.edu",
+    "adamjweintraut@berkeley.edu",
+    "jahigareda@berkeley.edu",
+    "bho1@berkeley.edu",
+    "jmscott@berkeley.edu",
+    "hsiungc@berkeley.edu",
+    "saketsuman@berkeley.edu",
+    "dakotaramos@berkeley.edu",
+  ]
+
+  team_mapping = [
+    {
+      "team" : "moviemood",
+      "member" : "wdudek@berkeley.edu"
+    },
+    {
+      "team" : "moviemood",
+      "member" : "neilprabhu@berkeley.edu"
+    }
+  ]
+  team_names     = tolist(toset([for member in local.team_mapping : member.team]))
+  team_members   = tolist(toset([for member in local.team_mapping : member.member]))
+  team_role_list = toset([for member in local.team_mapping : "${member.team}--${member.member}"])
+}
+
+locals {
+  email_to_id = { for user in data.azuread_users.users.users : user.mail => user.object_id if user.mail != "" }
+}

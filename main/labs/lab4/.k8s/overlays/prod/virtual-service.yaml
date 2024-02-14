@@ -1,0 +1,27 @@
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: lab4
+spec:
+  hosts:
+    - winegarj.mids255.com
+  gateways:
+    - istio-ingress/winegarj-gateway
+  http:
+    - match:
+        - uri:
+            exact: /predict
+        - uri:
+            exact: /bulk_predict
+        - uri:
+            prefix: /health
+        - uri:
+            prefix: /docs
+        - uri:
+            prefix: /openapi.json
+      route:
+        - destination:
+            host: lab4
+            port:
+              number: 8000

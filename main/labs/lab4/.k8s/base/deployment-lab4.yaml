@@ -1,0 +1,77 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lab4
+  labels:
+    app: lab4
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: lab4
+  template:
+    metadata:
+      labels:
+        app: lab4
+    spec:
+      containers:
+        - name: lab4
+          image: lab4:latest
+          env:
+            - name: REDIS_URL
+              value: redis://:thisisapassword@redis:6379
+          resources:
+            requests:
+              cpu: 200m
+              memory: 500Mi
+            limits:
+              cpu: 500m
+              memory: 500Mi
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          readinessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /health
+              port: 8000
+            initialDelaySeconds: 1
+            periodSeconds: 3
+          livenessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      initContainers:
+        - name: init-verify-redis-service-dns
+          image: busybox
+          command:
+            [
+              "sh",
+              "-c",
+              "until nc -vz redis 6379; do echo 'waiting for redis service from DNS'; sleep 2; done",
+            ]
+        - name: init-verify-redis-ready
+          image: busybox
+          command:
+            [
+              "sh",
+              "-c",
+              "until (printf 'PING\r\n';) | nc redis 6379; do echo 'waiting for redis to PONG'; sleep 1; done",
+            ]
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: lab4
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: lab4
+  minReplicas: 1
+  maxReplicas: 40
+  targetCPUUtilizationPercentage: 50

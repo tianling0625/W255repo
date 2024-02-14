@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pythonapi
+  namespace: w255
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pythonapi
+  template:
+    metadata:
+      labels:
+        app: pythonapi
+    spec:
+      initContainers:
+        - name: check-redis-dns
+          image: busybox:1.36.1
+          command:
+            - sh
+            - "-c"
+            - "until nslookup redis.w255.svc.cluster.local; do echo waiting for redis; sleep 2; done;"
+        - name: ping-redis
+          image: busybox:1.36.1
+          command:
+            - sh
+            - "-c"
+            - "until echo PING | nc redis 6379 | grep PONG; do echo waiting for redis to be ready; sleep 2; done;"
+      containers:
+        - name: pythonapi
+          image: lab3:0.1
+          imagePullPolicy: Never
+          env:
+          - name: REDIS_HOST
+            value: "redis"
+          - name: REDIS_PORT
+            value: "6379"
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "250m"
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            failureThreshold: 30
+            periodSeconds: 10

@@ -1,0 +1,25 @@
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: project
+spec:
+  hosts:
+    - twang0.mids255.com
+  gateways:
+    - istio-ingress/twang0-gateway
+  http:
+    - match:
+        - uri:
+            exact: /project-predict
+        - uri:
+            prefix: /health
+        - uri:
+            prefix: /docs
+        - uri:
+            prefix: /openapi.json
+      route:
+        - destination:
+            host: project
+            port:
+              number: 8000

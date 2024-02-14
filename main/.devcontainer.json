@@ -1,0 +1,31 @@
+{
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+        "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {},
+        "ghcr.io/devcontainers/features/git-lfs:1": {},
+        "ghcr.io/devcontainers/features/azure-cli:1": {}
+    },
+    "mounts": [
+        // mount the host docker socket so docker can be used in the devcontainer
+        "source=/var/run/docker.sock,target=/var/run/docker-host.sock,type=bind"
+    ],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "streetsidesoftware.code-spell-checker",
+                "ms-python.black-formatter",
+                "codezombiech.gitignore",
+                "shakram02.bash-beautify",
+                "ms-azuretools.vscode-docker",
+                "yzhang.markdown-all-in-one",
+                "redhat.vscode-yaml"
+            ]
+        }
+    },
+    "forwardPorts": [
+        8000
+    ]
+}

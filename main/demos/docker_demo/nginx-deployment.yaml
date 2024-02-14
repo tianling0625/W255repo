@@ -1,0 +1,22 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: gcr.io/w255-secrets/nginx-test@sha256:9d84028655422f63a1e073e4d8db430914dfa1b7feda74e32de4503e9cd853d8
+          ports:
+            - containerPort: 80

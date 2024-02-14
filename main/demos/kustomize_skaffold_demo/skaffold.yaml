@@ -1,0 +1,86 @@
+---
+apiVersion: skaffold/v2beta18
+kind: Config
+metadata:
+  name: cloud-spanner-emulator
+
+deploy:
+  kubeContext: docker-desktop
+  kustomize:
+    defaultNamespace: test
+    paths:
+      - .k8s/bases/cloud-spanner-emulator
+
+portForward:
+  - resourceType: Service
+    resourceName: cloud-spanner-emulator
+    namespace: test
+    port: 9010
+  - resourceType: Service
+    resourceName: cloud-spanner-emulator
+    namespace: test
+    port: 9020
+
+---
+apiVersion: skaffold/v2beta18
+kind: Config
+metadata:
+  name: redis
+
+deploy:
+  kubeContext: docker-desktop
+  kustomize:
+    defaultNamespace: test
+    paths:
+      - .k8s/bases/redis
+
+portForward:
+  - resourceType: Service
+    resourceName: redis
+    namespace: test
+    port: 6379
+
+---
+apiVersion: skaffold/v2beta18
+kind: Config
+metadata:
+  name: test-src
+
+build:
+  artifacts:
+    - image: test
+      docker:
+        # Use the image labeled as 'devel' in the Dockerfile
+        target: devel
+      sync:
+        manual:
+          - src: "src/*"
+            dest: "/opt/api"
+  local: {}
+
+deploy:
+  kubeContext: docker-desktop
+  kustomize:
+    paths:
+      - .k8s/local-dev
+
+portForward:
+  - resourceType: Service
+    resourceName: test
+    namespace: default
+    port: 8080
+
+profiles:
+  - name: development
+    patches:
+      # We don't need the local dev containers here
+      - op: remove
+        path: /requires
+    build:
+      googleCloudBuild: {}
+
+    deploy:
+      kubeContext: gke_w255-secrets_us-central1-c_cost-optimized-cluster-1
+      kustomize:
+        paths:
+          - .k8s/devel

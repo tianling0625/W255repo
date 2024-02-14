@@ -1,0 +1,249 @@
+---
+repositories:
+  - name: bitnami
+    url: https://charts.bitnami.com/bitnami
+  - name: istio
+    url: https://istio-release.storage.googleapis.com/charts
+  - name: jetstack
+    url: https://charts.jetstack.io
+  - name: bedag
+    url: https://bedag.github.io/helm-charts
+  - name: actions-runner-controller
+    url: https://actions-runner-controller.github.io/actions-runner-controller
+
+releases:
+  ##############
+  # External DNS
+  ##############
+  - name: external-dns
+    namespace: externaldns
+    chart: bitnami/external-dns
+    version: 6.24.1
+    values:
+      - provider: azure
+        azure:
+          resourceGroup: {{ requiredEnv "AZ_RESOURCE_GROUP" }}
+          tenantId: {{ requiredEnv "AZ_TENANT_ID" }}
+          subscriptionId: {{ requiredEnv "AZ_SUBSCRIPTION_ID" }}
+          aadClientId: {{ requiredEnv "SP_CLIENT_ID" }}
+          aadClientSecret: {{ requiredEnv "SP_CLIENT_SECRET" }}
+          cloud: AzurePublicCloud
+        domainFilters:
+          - {{ requiredEnv "DOMAIN_NAME" }}
+        txtOwnerId: {{ requiredEnv "AZ_AKS_NAME" }}
+        policy: sync
+        sources:
+          - istio-gateway
+        logLevel: {{ env "EXTERNALDNS_LOG_LEVEL" | default "debug" }}
+
+  ##############
+  # Istio
+  ##############
+  - name: istio-base
+    namespace: istio-system
+    chart: istio/base
+    version: 1.18.2
+
+  - name: istiod
+    namespace: istio-system
+    chart: istio/istiod
+    version: 1.18.2
+    needs:
+      - istio-system/istio-base
+
+  - name: istio-ingress
+    namespace: istio-ingress
+    chart: istio/gateway
+    version: 1.18.2
+    needs:
+      - istio-system/istiod
+
+  - name: istio-strict-peer-auth
+    namespace: istio-system
+    chart: bedag/raw
+    version: 2.0.0
+    needs:
+      - istio-system/istiod
+    values:
+      - resources:
+          - apiVersion: security.istio.io/v1beta1
+            kind: PeerAuthentication
+            metadata:
+              name: "default"
+            spec:
+              mtls:
+                mode: STRICT
+
+  ##############
+  # Cert Manager
+  ##############
+  - name: cert-manager
+    namespace: cert-manager
+    chart: jetstack/cert-manager
+    version: 1.12.3
+    values:
+      - installCRDs: true
+        global:
+          logLevel: 2
+
+  - name: cert-manager-azure-sp-secret
+    namespace: cert-manager
+    chart: bedag/raw
+    version: 2.0.0
+    needs:
+      - cert-manager/cert-manager
+    values:
+      - resources:
+          - apiVersion: v1
+            kind: Secret
+            metadata:
+              name: cert-manager-azure-sp-secret
+            type: Opaque
+            stringData:
+              sp-client-secret: {{ requiredEnv "SP_CLIENT_SECRET" }}
+
+  - name: cert-manager-issuers
+    namespace: cert-manager
+    chart: bedag/raw
+    version: 2.0.0
+    needs:
+      - cert-manager/cert-manager-azure-sp-secret
+    values:
+      - resources:
+          - apiVersion: cert-manager.io/v1
+            kind: ClusterIssuer
+            metadata:
+              name: letsencrypt-staging
+            spec:
+              acme:
+                server: https://acme-staging-v02.api.letsencrypt.org/directory
+                email: {{ requiredEnv "ACME_ISSUER_EMAIL" }}
+                privateKeySecretRef:
+                  name: letsencrypt-staging
+                solvers:
+                  - dns01:
+                      azureDNS:
+                        clientID: {{ requiredEnv "SP_CLIENT_ID" }}
+                        clientSecretSecretRef:
+                          name: cert-manager-azure-sp-secret
+                          key: sp-client-secret
+                        subscriptionID: {{ requiredEnv "AZ_SUBSCRIPTION_ID" }}
+                        tenantID: {{ requiredEnv "AZ_TENANT_ID" }}
+                        resourceGroupName:
+                          {{ requiredEnv "AZ_RESOURCE_GROUP" }}
+                        hostedZoneName: {{ requiredEnv "DOMAIN_NAME" }}
+                        environment: AzurePublicCloud
+
+          - apiVersion: cert-manager.io/v1
+            kind: ClusterIssuer
+            metadata:
+              name: letsencrypt-prod
+            spec:
+              acme:
+                server: https://acme-v02.api.letsencrypt.org/directory
+                email: {{ requiredEnv "ACME_ISSUER_EMAIL" }}
+                privateKeySecretRef:
+                  name: letsencrypt-prod
+                solvers:
+                  - dns01:
+                      azureDNS:
+                        clientID: {{ requiredEnv "SP_CLIENT_ID" }}
+                        clientSecretSecretRef:
+                          name: cert-manager-azure-sp-secret
+                          key: sp-client-secret
+                        subscriptionID: {{ requiredEnv "AZ_SUBSCRIPTION_ID" }}
+                        tenantID: {{ requiredEnv "AZ_TENANT_ID" }}
+                        resourceGroupName:
+                          {{ requiredEnv "AZ_RESOURCE_GROUP" }}
+                        hostedZoneName: {{ requiredEnv "DOMAIN_NAME" }}
+                        environment: AzurePublicCloud
+
+  ##############
+  # Mimic Minikube Storage on AKS
+  ##############
+  - name: standard-storage
+    chart: bedag/raw
+    version: 2.0.0
+    values:
+      - resources:
+          - apiVersion: storage.k8s.io/v1
+            allowVolumeExpansion: true
+            kind: StorageClass
+            metadata:
+              labels:
+                addonmanager.kubernetes.io/mode: EnsureExists
+                kubernetes.io/cluster-service: "true"
+              name: standard
+            parameters:
+              skuname: StandardSSD_LRS
+            provisioner: disk.csi.azure.com
+            reclaimPolicy: Delete
+            volumeBindingMode: WaitForFirstConsumer
+
+  ##############
+  # Prometheus/Grafana/Kiali/Loki/Jaeger
+  ##############
+  - name: prometheus-namespace
+    chart: bedag/raw
+    version: 2.0.0
+    values:
+      - resources:
+          - apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: prometheus
+
+  ##############
+  # GitHub Actions Runner
+  ##############
+  - name: github-action-runner
+    chart: actions-runner-controller/actions-runner-controller
+    namespace: github-action-runner
+    version: 0.23.3
+    set:
+      - name: authSecret.github_token
+        value: {{ requiredEnv "GITHUB_PAT" }}
+      - name: authSecret.create
+        value: true
+
+  - name: github-action-runner-deployment
+    chart: bedag/raw
+    namespace: github-action-runner
+    version: 2.0.0
+    values:
+      - resources:
+          - apiVersion: actions.summerwind.dev/v1alpha1
+            kind: RunnerDeployment
+            metadata:
+              name: 255-runnerdeploy
+            spec:
+              replicas: 1
+              template:
+                spec:
+                  organization: UCB-W255
+
+  - name: github-action-runner-deployment-autoscaler
+    chart: bedag/raw
+    namespace: github-action-runner
+    version: 2.0.0
+    values:
+      - resources:
+          - apiVersion: actions.summerwind.dev/v1alpha1
+            kind: HorizontalRunnerAutoscaler
+            metadata:
+              name: 255-runnerdeploy-autoscaler
+            spec:
+              minReplicas: 2
+              maxReplicas: 10
+              # Runners in the targeted RunnerDeployment won't be scaled down
+              # for 5 minutes instead of the default 10 minutes now
+              scaleDownDelaySecondsAfterScaleOut: 600
+              scaleTargetRef:
+                kind: RunnerDeployment
+                name: 255-runnerdeploy
+              metrics:
+                - type: PercentageRunnersBusy
+                  scaleUpThreshold: "0.75"
+                  scaleDownThreshold: "0.25"
+                  scaleUpFactor: "2"
+                  scaleDownFactor: "0.5"

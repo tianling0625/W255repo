@@ -1,0 +1,8 @@
+flask_api
+flask_caching
+flask
+pandas
+joblib
+sklearn
+redis
+google-cloud-storage

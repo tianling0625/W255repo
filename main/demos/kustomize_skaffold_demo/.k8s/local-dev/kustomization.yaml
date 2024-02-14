@@ -1,0 +1,18 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: default
+
+resources:
+  - ../bases
+
+configMapGenerator:
+  - name: test
+    literals:
+      - NODE_ENV=development
+      - REDISURI=redis.test.svc:6379
+      - GCLOUD_PROJECT=spanner-emulator
+      - SPANNER_INSTANCE=test-instance
+      - SPANNER_DB=song-db
+      - SPANNER_EMULATOR_HOST=cloud-spanner-emulator.test.svc:9010
